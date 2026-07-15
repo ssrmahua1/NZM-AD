@@ -4,21 +4,18 @@
 let uploadedFiles = {};
 let selectedBill = null;
 
-// DOM Elements
-const filterYear = document.getElementById('filterYear');
-const filterMonth = document.getElementById('filterMonth');
-const filterType = document.getElementById('filterType');
+// OTP Authentication State
+let currentGeneratedOtp = null;
 
-const outputHeader = document.getElementById('outputHeader');
-const outputTitle = document.getElementById('outputTitle');
-const downloadBtn = document.getElementById('downloadBtn');
-const previewPane = document.getElementById('previewPane');
+// Global DOM elements initialized after load
+let loginOverlay, appContent, logoutBtn;
+let passwordStep, otpStep;
+let sendOtpForm, userNameInput;
+let otpFormContainer, otpInput, otpError, otpForm, resendOtpBtn;
 
-const folderInput = document.getElementById('folderInput');
-const fileInput = document.getElementById('fileInput');
-const dropzone = document.getElementById('dropzone');
-
-const toast = document.getElementById('toast');
+let filterYear, filterMonth, filterType;
+let outputHeader, outputTitle, downloadBtn, previewPane;
+let folderInput, fileInput, dropzone, toast;
 
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const MONTHS_FULL = [
@@ -36,7 +33,204 @@ const MONTHS_FULL = [
   { val: 'Dec', name: 'December / दिसम्बर' }
 ];
 
-// Initial Setup
+// Look up elements securely after the document is loaded
+function initDOM() {
+  loginOverlay = document.getElementById('loginOverlay');
+  appContent = document.getElementById('appContent');
+  logoutBtn = document.getElementById('logoutBtn');
+
+  // Step 1 elements
+  passwordStep = document.getElementById('passwordStep');
+  sendOtpForm = document.getElementById('sendOtpForm');
+  userNameInput = document.getElementById('userNameInput');
+  
+  // Step 2 elements
+  otpStep = document.getElementById('otpStep');
+  otpFormContainer = document.getElementById('otpFormContainer');
+  otpInput = document.getElementById('otpInput');
+  otpError = document.getElementById('otpError');
+  otpForm = document.getElementById('otpForm');
+  resendOtpBtn = document.getElementById('resendOtpBtn');
+
+  filterYear = document.getElementById('filterYear');
+  filterMonth = document.getElementById('filterMonth');
+  filterType = document.getElementById('filterType');
+
+  outputHeader = document.getElementById('outputHeader');
+  outputTitle = document.getElementById('outputTitle');
+  downloadBtn = document.getElementById('downloadBtn');
+  previewPane = document.getElementById('previewPane');
+
+  folderInput = document.getElementById('folderInput');
+  fileInput = document.getElementById('fileInput');
+  dropzone = document.getElementById('dropzone');
+
+  toast = document.getElementById('toast');
+}
+
+// Bind Submit handlers directly via JS
+function bindSubmitHandlers() {
+  initDOM(); // Look up DOM nodes
+  
+  if (sendOtpForm) {
+    sendOtpForm.onsubmit = null;
+    sendOtpForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      handleSendOtpClick();
+    });
+  }
+
+  if (otpForm) {
+    otpForm.onsubmit = null;
+    otpForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      handleOtpSubmit();
+    });
+  }
+
+  if (resendOtpBtn) {
+    resendOtpBtn.onclick = null;
+    resendOtpBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      // Resend OTP using existing name in input
+      const userName = userNameInput ? userNameInput.value.trim() : "Portal User";
+      triggerOtpFlow(userName);
+    });
+  }
+
+  if (logoutBtn) {
+    logoutBtn.onclick = null;
+    logoutBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      handleLogout();
+    });
+  }
+}
+
+// Start application and check session auth state
+function startApp() {
+  initDOM(); // Look up DOM nodes
+  
+  // Save Web3Forms key
+  localStorage.setItem('web3forms_key', 'baed40a6-9388-408c-970d-d126f9dc4665');
+
+  const isAuth = sessionStorage.getItem('cs_authenticated');
+  if (isAuth === 'true') {
+    if (loginOverlay) loginOverlay.style.display = 'none';
+    if (appContent) appContent.style.display = 'flex';
+    init();
+  } else {
+    if (loginOverlay) loginOverlay.style.display = 'flex';
+    if (appContent) appContent.style.display = 'none';
+    if (passwordStep) passwordStep.style.display = 'block';
+    if (otpStep) otpStep.style.display = 'none';
+    if (userNameInput) {
+      userNameInput.value = '';
+      userNameInput.focus();
+    }
+  }
+}
+
+// Check document state and initialize
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    bindSubmitHandlers();
+    startApp();
+  });
+} else {
+  bindSubmitHandlers();
+  startApp();
+}
+
+// Handle clicking "Send OTP" form submission
+function handleSendOtpClick() {
+  if (!userNameInput) return;
+  const userName = userNameInput.value.trim();
+  if (!userName) return;
+
+  if (passwordStep) passwordStep.style.display = 'none';
+  if (otpStep) otpStep.style.display = 'block';
+  
+  if (otpInput) {
+    otpInput.value = '';
+    otpInput.focus();
+  }
+  
+  triggerOtpFlow(userName);
+}
+
+// Generate OTP and send via Web3Forms API including requestor name
+async function triggerOtpFlow(userName) {
+  const key = localStorage.getItem('web3forms_key') || 'baed40a6-9388-408c-970d-d126f9dc4665';
+  if (!key) return;
+
+  // Generate 4 digit code
+  const otp = Math.floor(1000 + Math.random() * 9000).toString();
+  currentGeneratedOtp = otp;
+
+  showToast("Sending OTP to your email...");
+  
+  try {
+    const response = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        access_key: key,
+        subject: `Login Request from: ${userName}`,
+        from_name: "Chandu Toilet Portal",
+        message: `Hello,\n\nUser "${userName}" is attempting to log in to the Chandu Sanitation Toilet AD Bill Portal.\n\nTheir One-Time Password (OTP) verification code is: ${otp}\n\nPlease share this code with them to allow login.`
+      })
+    });
+
+    const result = await response.json();
+    if (result.success) {
+      showToast("OTP sent successfully!");
+    } else {
+      showToast("Failed to deliver email. Check key config.");
+      console.error(result);
+    }
+  } catch (e) {
+    console.error(e);
+    showToast("Error sending OTP email.");
+  }
+}
+
+// Handle OTP verification submit
+function handleOtpSubmit() {
+  if (!otpInput) return;
+  const enteredOtp = otpInput.value.trim();
+  
+  if (enteredOtp === currentGeneratedOtp) {
+    // Auth successful
+    sessionStorage.setItem('cs_authenticated', 'true');
+    if (loginOverlay) loginOverlay.style.display = 'none';
+    if (appContent) appContent.style.display = 'flex';
+    if (otpError) otpError.style.display = 'none';
+    init();
+    showToast("Login successful!");
+  } else {
+    // OTP mismatch
+    if (otpError) otpError.style.display = 'block';
+    otpInput.classList.add('shake');
+    otpInput.value = '';
+    otpInput.focus();
+    setTimeout(() => {
+      otpInput.classList.remove('shake');
+    }, 400);
+  }
+}
+
+// Handle logout action
+function handleLogout() {
+  sessionStorage.removeItem('cs_authenticated');
+  showToast("Logged out successfully");
+  startApp();
+}
+
+// Initial Setup after login
 function init() {
   setupEventListeners();
   populateDropdowns();
@@ -44,21 +238,24 @@ function init() {
 
 // Show Toast
 function showToast(message) {
-  toast.textContent = message;
-  toast.classList.add('show');
-  setTimeout(() => {
-    toast.classList.remove('show');
-  }, 3000);
+  if (toast) {
+    toast.textContent = message;
+    toast.classList.add('show');
+    setTimeout(() => {
+      toast.classList.remove('show');
+    }, 3000);
+  }
 }
 
 // Populate Dropdowns dynamically (from December 2025 to current month + 1 month extra)
 function populateDropdowns() {
+  if (!filterYear || !filterMonth) return;
+  
   const currentDate = new Date();
-  // Shift date by +1 month to implement "1 month extra" request
   currentDate.setMonth(currentDate.getMonth() + 1);
 
-  const maxYear = currentDate.getFullYear(); // e.g. 2026 (or 2027 if current was Dec 2026)
-  const maxMonthIdx = currentDate.getMonth(); // e.g. 7 (August) since current local is July
+  const maxYear = currentDate.getFullYear(); // e.g. 2026
+  const maxMonthIdx = currentDate.getMonth(); // e.g. 7 (August)
 
   // Populate Years dropdown: starts from 2025 up to maxYear
   let yearHtml = '';
@@ -83,10 +280,6 @@ function populateDropdowns() {
 
     let monthHtml = '';
     for (let i = startIdx; i <= endIdx; i++) {
-      // Default select logic:
-      // - Dec if year is 2025
-      // - Max month (August) if selected year is maxYear
-      // - Jan otherwise
       const isSelected = (selectedYear === maxYear && i === maxMonthIdx) || 
                           (selectedYear === 2025 && i === 11) || 
                           (selectedYear !== 2025 && selectedYear !== maxYear && i === 0);
@@ -315,6 +508,7 @@ function downloadCurrentBill() {
 
 // Export functions to window
 window.handleGenerate = handleGenerate;
-
-// Run app init
-document.addEventListener('DOMContentLoaded', init);
+window.handleOtpSubmit = handleOtpSubmit;
+window.handleSendOtpClick = handleSendOtpClick;
+window.triggerOtpFlow = triggerOtpFlow;
+window.handleLogout = handleLogout;

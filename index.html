@@ -9,18 +9,79 @@
 </head>
 <body>
 
-  <div class="app-container simple-layout">
+  <!-- Password & OTP Protection Login Overlay -->
+  <div id="loginOverlay" class="login-overlay">
+    <div class="login-card">
+      <div class="railway-logo-wrapper" style="margin: 0 auto 20px auto; width: 64px; height: 64px;">
+        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT6k30oHa6plqUBEFrkChqtowCujAdc94WWpaJM7dJuUvaFG6SYNz2sktmd&s=10" class="railway-logo" alt="Railways Logo">
+      </div>
+      <h2>Chandu Sanitation</h2>
+      <h3>Pay & Use Toilet AD Bill Portal</h3>
+
+      <!-- STEP 1: ENTER NAME & SEND OTP -->
+      <div id="passwordStep">
+        <p class="login-subtitle">Verification / लॉगिन सत्यापन</p>
+        <form id="sendOtpForm" style="width: 100%; display: flex; flex-direction: column; gap: 12px; margin-top: 16px;">
+          <div class="form-group-simple">
+            <input type="text" id="userNameInput" placeholder="Enter Your Name / अपना नाम दर्ज करें" required autofocus>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">
+            Send OTP / ओटीपी भेजें
+          </button>
+        </form>
+      </div>
+
+      <!-- STEP 2: OTP VERIFICATION -->
+      <div id="otpStep" style="display: none;">
+        <p class="login-subtitle">OTP Verification / ओटीपी सत्यापन</p>
+        
+        <!-- OTP Input Form -->
+        <div id="otpFormContainer" style="display: block; margin-top: 16px;">
+          <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.4;">
+            An OTP verification code has been sent to your email.<br>
+            आपके ईमेल पर ओटीपी कोड भेज दिया गया है।
+          </p>
+          
+          <form id="otpForm" style="width: 100%; display: flex; flex-direction: column; gap: 12px;">
+            <div class="form-group-simple">
+              <input type="text" id="otpInput" placeholder="Enter 4-Digit OTP / ओटीपी" maxLength="4" required style="text-align: center; font-size: 18px; font-weight: bold; letter-spacing: 4px;">
+            </div>
+            <div id="otpError" class="login-error-msg" style="display: none;">Invalid OTP Code! / गलत ओटीपी कोड!</div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px;">
+              Verify & Enter / सत्यापित करें
+            </button>
+          </form>
+
+          <div style="margin-top: 16px; text-align: center; font-size: 11px;">
+            <a href="#" id="resendOtpBtn" style="color: var(--accent-primary); text-decoration: none; font-weight: 600;">Resend OTP / दोबारा भेजें</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Main App Layout (Hidden by default until authenticated) -->
+  <div id="appContent" class="app-container simple-layout" style="display: none;">
     
-    <!-- Top Header with Custom Indian Railways/Chandu Logo -->
+    <!-- Top Header with Custom Indian Railways/Chandu Logo and Logout Option -->
     <header class="simple-header">
-      <div class="brand-section">
-        <div class="railway-logo-wrapper">
-          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT6k30oHa6plqUBEFrkChqtowCujAdc94WWpaJM7dJuUvaFG6SYNz2sktmd&s=10" class="railway-logo" alt="Railways Logo">
+      <div class="brand-section" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <div class="railway-logo-wrapper">
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT6k30oHa6plqUBEFrkChqtowCujAdc94WWpaJM7dJuUvaFG6SYNz2sktmd&s=10" class="railway-logo" alt="Railways Logo">
+          </div>
+          <div class="header-titles">
+            <h1>Chandu Sanitation Pay and Use Toilet Ad Bill</h1>
+            <p class="hindi-sub">चन्दू सैनिटेशन पे एंड यूज़ टॉयलेट विज्ञापन बिल</p>
+          </div>
         </div>
-        <div class="header-titles">
-          <h1>Chandu Sanitation Pay and Use Toilet Ad Bill</h1>
-          <p class="hindi-sub">चन्दू सैनिटेशन पे एंड यूज़ टॉयलेट विज्ञापन बिल</p>
-        </div>
+        
+        <!-- Logout Button -->
+        <button id="logoutBtn" class="btn btn-logout" title="Logout / बाहर निकलें" aria-label="Logout">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-log-out"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Logout
+        </button>
       </div>
     </header>
 
