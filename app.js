@@ -247,15 +247,23 @@ function showToast(message) {
   }
 }
 
-// Populate Dropdowns dynamically (from December 2025 to current month + 1 month extra)
+// Populate Dropdowns dynamically (from December 2025 to current month + 1 month extra starting from 10th of current month)
 function populateDropdowns() {
   if (!filterYear || !filterMonth) return;
   
-  const currentDate = new Date();
-  currentDate.setMonth(currentDate.getMonth() + 1);
-
-  const maxYear = currentDate.getFullYear(); // e.g. 2026
-  const maxMonthIdx = currentDate.getMonth(); // e.g. 7 (August)
+  const today = new Date();
+  const currentDay = today.getDate();
+  
+  // Target max date: if 10th of the month or later, show next month. Otherwise, show up to current month.
+  let maxDate;
+  if (currentDay >= 10) {
+    maxDate = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+  } else {
+    maxDate = new Date(today.getFullYear(), today.getMonth(), 1);
+  }
+  
+  const maxYear = maxDate.getFullYear();
+  const maxMonthIdx = maxDate.getMonth();
 
   // Populate Years dropdown: starts from 2025 up to maxYear
   let yearHtml = '';
@@ -275,14 +283,15 @@ function populateDropdowns() {
       endIdx = 11;
     } else if (selectedYear === maxYear) {
       startIdx = 0;
-      endIdx = maxMonthIdx; // Up to max month (current month + 1 extra, i.e., August)
+      endIdx = maxMonthIdx;
     }
 
     let monthHtml = '';
     for (let i = startIdx; i <= endIdx; i++) {
-      const isSelected = (selectedYear === maxYear && i === maxMonthIdx) || 
+      // Default selection logic: select the latest available month for the selected year
+      const isSelected = (selectedYear === maxYear && i === endIdx) || 
                           (selectedYear === 2025 && i === 11) || 
-                          (selectedYear !== 2025 && selectedYear !== maxYear && i === 0);
+                          (selectedYear !== 2025 && selectedYear !== maxYear && i === 11);
                           
       monthHtml += `<option value="${MONTHS_SHORT[i]}" ${isSelected ? 'selected' : ''}>${MONTHS_FULL[i].name}</option>`;
     }
