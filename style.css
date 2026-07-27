@@ -382,6 +382,49 @@ select:focus, input[type="text"]:focus {
   transform: translateY(-1px);
 }
 
+/* Admin Button Style */
+.btn-admin {
+  background-color: #f1f5f9;
+  color: var(--accent-primary);
+  border: 1px solid var(--border-color);
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.btn-admin:hover {
+  background-color: #e2e8f0;
+  color: var(--accent-primary);
+  transform: translateY(-1px);
+}
+
+.btn-admin-active {
+  background-color: #fef3c7;
+  color: #b45309;
+  border: 1px solid #f59e0b;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.btn-admin-active:hover {
+  background-color: #fde68a;
+  transform: translateY(-1px);
+}
+
+.admin-badge {
+  background-color: #fffbe5;
+  border: 1px solid #f59e0b;
+  color: #92400e;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.4;
+}
+
 /* Output Card and Preview Pane */
 .output-card {
   display: flex;

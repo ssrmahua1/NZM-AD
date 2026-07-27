@@ -13,6 +13,8 @@ let passwordStep, otpStep;
 let sendOtpForm, userNameInput;
 let otpFormContainer, otpInput, otpError, otpForm, resendOtpBtn;
 
+let adminLoginBtn, adminModal, closeAdminModal, adminLoginForm, adminPasswordInput, adminLoginError, adminBadge;
+
 let filterYear, filterMonth, filterType;
 let outputHeader, outputTitle, downloadBtn, previewPane;
 let folderInput, fileInput, dropzone, toast;
@@ -51,6 +53,15 @@ function initDOM() {
   otpError = document.getElementById('otpError');
   otpForm = document.getElementById('otpForm');
   resendOtpBtn = document.getElementById('resendOtpBtn');
+
+  // Admin Mode elements
+  adminLoginBtn = document.getElementById('adminLoginBtn');
+  adminModal = document.getElementById('adminModal');
+  closeAdminModal = document.getElementById('closeAdminModal');
+  adminLoginForm = document.getElementById('adminLoginForm');
+  adminPasswordInput = document.getElementById('adminPasswordInput');
+  adminLoginError = document.getElementById('adminLoginError');
+  adminBadge = document.getElementById('adminBadge');
 
   filterYear = document.getElementById('filterYear');
   filterMonth = document.getElementById('filterMonth');
@@ -105,6 +116,31 @@ function bindSubmitHandlers() {
       handleLogout();
     });
   }
+
+  // Admin Mode listeners
+  if (adminLoginBtn) {
+    adminLoginBtn.onclick = null;
+    adminLoginBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      handleAdminBtnClick();
+    });
+  }
+
+  if (closeAdminModal) {
+    closeAdminModal.onclick = null;
+    closeAdminModal.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (adminModal) adminModal.style.display = 'none';
+    });
+  }
+
+  if (adminLoginForm) {
+    adminLoginForm.onsubmit = null;
+    adminLoginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      handleAdminLogin();
+    });
+  }
 }
 
 // Start application and check session auth state
@@ -140,6 +176,73 @@ if (document.readyState === 'loading') {
 } else {
   bindSubmitHandlers();
   startApp();
+}
+
+// Handle Admin Button Click (Toggle Mode or Open Modal)
+function handleAdminBtnClick() {
+  const isAdmin = sessionStorage.getItem('cs_admin_mode') === 'true';
+  if (isAdmin) {
+    // Disable Advance Mode
+    sessionStorage.removeItem('cs_admin_mode');
+    updateAdminUI();
+    populateDropdowns();
+    showToast("Advance Mode Deactivated / सामान्य मोड चालू");
+  } else {
+    // Open Admin Login Modal
+    if (adminModal) adminModal.style.display = 'flex';
+    if (adminLoginError) adminLoginError.style.display = 'none';
+    if (adminPasswordInput) {
+      adminPasswordInput.value = '';
+      adminPasswordInput.focus();
+    }
+  }
+}
+
+// Handle Admin Login Form Submission
+function handleAdminLogin() {
+  if (!adminPasswordInput) return;
+  const pass = adminPasswordInput.value;
+  if (pass === "Sahil7292*") {
+    sessionStorage.setItem('cs_admin_mode', 'true');
+    if (adminModal) adminModal.style.display = 'none';
+    if (adminLoginError) adminLoginError.style.display = 'none';
+    updateAdminUI();
+    populateDropdowns();
+    showToast("Advance Mode Activated! (एडवांस मोड चालू)");
+  } else {
+    if (adminLoginError) adminLoginError.style.display = 'block';
+    adminPasswordInput.classList.add('shake');
+    adminPasswordInput.value = '';
+    adminPasswordInput.focus();
+    setTimeout(() => {
+      adminPasswordInput.classList.remove('shake');
+    }, 400);
+  }
+}
+
+// Update UI elements depending on Admin Advance Mode state
+function updateAdminUI() {
+  const isAdmin = sessionStorage.getItem('cs_admin_mode') === 'true';
+  if (adminBadge) {
+    adminBadge.style.display = isAdmin ? 'flex' : 'none';
+  }
+  if (adminLoginBtn) {
+    if (isAdmin) {
+      adminLoginBtn.className = 'btn btn-admin-active';
+      adminLoginBtn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Advance Mode (ON)
+      `;
+      adminLoginBtn.title = "Click to exit Advance Mode";
+    } else {
+      adminLoginBtn.className = 'btn btn-admin';
+      adminLoginBtn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5z"/><path d="M12 14v3"/><path d="M12 7a2 2 0 0 1 2 2v3H10V9a2 2 0 0 1 2-2z"/></svg>
+        Admin Login
+      `;
+      adminLoginBtn.title = "Admin Login / एडवांस मोड";
+    }
+  }
 }
 
 // Handle clicking "Send OTP" form submission
@@ -226,6 +329,7 @@ function handleOtpSubmit() {
 // Handle logout action
 function handleLogout() {
   sessionStorage.removeItem('cs_authenticated');
+  sessionStorage.removeItem('cs_admin_mode');
   showToast("Logged out successfully");
   startApp();
 }
@@ -233,6 +337,7 @@ function handleLogout() {
 // Initial Setup after login
 function init() {
   setupEventListeners();
+  updateAdminUI();
   populateDropdowns();
 }
 
@@ -247,23 +352,29 @@ function showToast(message) {
   }
 }
 
-// Populate Dropdowns dynamically (from December 2025 to current month + 1 month extra starting from 10th of current month)
+// Populate Dropdowns dynamically (Normal Mode vs Advance Admin Mode)
 function populateDropdowns() {
   if (!filterYear || !filterMonth) return;
   
+  const isAdmin = sessionStorage.getItem('cs_admin_mode') === 'true';
   const today = new Date();
-  const currentDay = today.getDate();
   
-  // Target max date: if 10th of the month or later, show next month. Otherwise, show up to current month.
-  let maxDate;
-  if (currentDay >= 10) {
-    maxDate = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+  let maxYear;
+  let maxMonthIdx;
+
+  if (isAdmin) {
+    // Advance Mode: Show all uploaded/future years up to 2030 and all 12 months (Jan-Dec)
+    maxYear = 2030;
+    maxMonthIdx = 11;
   } else {
-    maxDate = new Date(today.getFullYear(), today.getMonth(), 1);
+    // Normal Mode: Show up to March 2027
+    maxYear = Math.max(today.getFullYear(), 2027);
+    if (maxYear === 2027) {
+      maxMonthIdx = 2; // March (Jan=0, Feb=1, Mar=2)
+    } else {
+      maxMonthIdx = today.getMonth();
+    }
   }
-  
-  const maxYear = maxDate.getFullYear();
-  const maxMonthIdx = maxDate.getMonth();
 
   // Populate Years dropdown: starts from 2025 up to maxYear
   let yearHtml = '';
@@ -281,14 +392,13 @@ function populateDropdowns() {
     if (selectedYear === 2025) {
       startIdx = 11; // Only December 2025
       endIdx = 11;
-    } else if (selectedYear === maxYear) {
+    } else if (selectedYear === maxYear && !isAdmin) {
       startIdx = 0;
       endIdx = maxMonthIdx;
     }
 
     let monthHtml = '';
     for (let i = startIdx; i <= endIdx; i++) {
-      // Default selection logic: select the latest available month for the selected year
       const isSelected = (selectedYear === maxYear && i === endIdx) || 
                           (selectedYear === 2025 && i === 11) || 
                           (selectedYear !== 2025 && selectedYear !== maxYear && i === 11);
@@ -521,3 +631,5 @@ window.handleOtpSubmit = handleOtpSubmit;
 window.handleSendOtpClick = handleSendOtpClick;
 window.triggerOtpFlow = triggerOtpFlow;
 window.handleLogout = handleLogout;
+window.handleAdminBtnClick = handleAdminBtnClick;
+window.handleAdminLogin = handleAdminLogin;
